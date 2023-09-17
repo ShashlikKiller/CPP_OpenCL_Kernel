@@ -1,0 +1,63 @@
+void PerformCalculationsOnHostSTDThread()
+{
+	cout << endl << "-------------------------------------------------" << endl;
+	cout << "Device: Host std::thread" << endl << endl;
+
+	//Some performance measurement
+	timeValues.clear();
+	__int64 start_count;
+	__int64 end_count;
+	__int64 freq;
+	QueryPerformanceFrequency((LARGE_INTEGER*)&freq);
+
+	int threadsNumber = max(1, std::thread::hardware_concurrency());
+	cout << "Threads number: " << threadsNumber << endl << endl;
+	int jobsPerThread = DATA_SIZE / threadsNumber;
+
+	for (int iTest = 0; iTest < (TESTS_NUMBER / 5); iTest++)
+	{
+		QueryPerformanceCounter((LARGE_INTEGER*)&start_count);
+
+		int curStartJob = 0;
+		std::vector<std::thread> threadVector;
+		for (int iThread = 0; iThread < threadsNumber; iThread++)
+		{
+			threadVector.push_back(std::thread(STDThreadCalculationFunction, curStartJob, min(curStartJob + jobsPerThread, DATA_SIZE)));
+			curStartJob += jobsPerThread;
+		}
+
+		for (auto thread = threadVector.begin(); thread != threadVector.end(); thread++)
+			thread->join();
+
+		QueryPerformanceCounter((LARGE_INTEGER*)&end_count);
+		double time = 1000 * (double)(end_count - start_count) / (double)freq;
+		timeValues.push_back(time);
+	}
+
+	PrintTimeStatistic();
+}
+
+void PerformCalculationsOnHostSeparateFunction()
+{
+	cout << endl << "-------------------------------------------------" << endl;
+	cout << "Device: Host separate function" << endl << endl;
+
+	//Some performance measurement
+	timeValues.clear();
+	__int64 start_count;
+	__int64 end_count;
+	__int64 freq;
+	QueryPerformanceFrequency((LARGE_INTEGER*)&freq);
+
+	for (int iTest = 0; iTest < (TESTS_NUMBER / 5); iTest++)
+	{
+		QueryPerformanceCounter((LARGE_INTEGER*)&start_count);
+		STDThreadCalculationFunction(0, DATA_SIZE);
+		QueryPerformanceCounter((LARGE_INTEGER*)&end_count);
+		double time = 1000 * (double)(end_count - start_count) / (double)freq;
+		timeValues.push_back(time);
+	}
+
+	PrintTimeStatistic();
+}
+
